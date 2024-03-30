@@ -6,6 +6,7 @@ def main():
     display: tuple[int] = (1280, 720)
     screen: pg.Display = pg.display.set_mode(display)
     running: bool = True
+    clock = pg.time.Clock()
 
     HRES: int = 120 # horizontal resolution
     HALFVRES: int = 100 # vertical resolution / 2
@@ -34,6 +35,24 @@ def main():
 
         screen.blit(surf, (0, 0))
         pg.display.update()
+
+        pos_x, pos_y, rot = movement(pos_x, pos_y, rot, pg.key.get_pressed())
+
+
+def movement(pos_x, pos_y, rot, keys, c=1, d=1):
+    if keys[pg.K_LEFT]:
+        rot = rot - (0.1 * c)
+
+    if keys[pg.K_RIGHT]:
+        rot = rot + (0.1 * c)
+
+    if keys[pg.K_UP]:
+        pos_x, pos_y = pos_x + np.cos(rot)*0.1*d, pos_y + np.sin(rot)*0.1*d
+
+    if keys[pg.K_DOWN]:
+        pos_x, pos_y = pos_x - np.cos(rot)*0.1*d, pos_y - np.sin(rot)*0.1*d  
+
+    return pos_x, pos_y, rot
 
 
 if __name__ == '__main__':
