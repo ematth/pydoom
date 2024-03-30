@@ -27,7 +27,7 @@ def main():
                 n = HALFVRES / (HALFVRES - j)
                 x, y = pos_x + cos*n, pos_y + sin*n
 
-                frame[i][HALFVRES - j - 1] = [0, 0, 0] if int(x)%2 == int(y)%2 else [1, 1, 1]
+                frame[i][HALFVRES * 2 - j - 1] = [0, 0, 0] if int(x)%2 == int(y)%2 else [1, 1, 1]
 
         surf = pg.surfarray.make_surface(frame * 255)
         surf = pg.transform.scale(surf, display)
