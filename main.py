@@ -1,5 +1,6 @@
 import pygame as pg
 import numpy as np
+from numba import njit
 
 def main():
     pg.init()
@@ -13,22 +14,18 @@ def main():
 
     mod: float = HRES / 60
     pos_x, pos_y, rot = 0, 0, 0
-    frame = np.random.uniform(0, 1, (HRES, HALFVRES * 2, 3))
+    frame = np.full((HRES, HALFVRES * 2, 3), 0.5)
+    sky = pg.image.load('skybox2.jpg')
+    sky = pg.surfarray.array3d(pg.transform.scale(sky, (360, HALFVRES*2)))/255
+    floor = pg.surfarray.array3d(pg.image.load('floor.jpg'))/255
 
     while running:
         for event in pg.event.get():
-            if event.type is pg.QUIT:
+            if event.type == pg.QUIT:
                 running = False
+
+        frame = new_frame(pos_x, pos_y, rot, frame, sky, floor, HRES, HALFVRES, mod)
         
-        for i in range(HRES):
-            rot_i = rot + np.deg2rad(i/mod - 30)
-            sin, cos = np.sin(rot_i), np.cos(rot_i)
-
-            for j in range(HALFVRES):
-                n = HALFVRES / (HALFVRES - j)
-                x, y = pos_x + cos*n, pos_y + sin*n
-
-                frame[i][HALFVRES * 2 - j - 1] = [0, 0, 0] if int(x)%2 == int(y)%2 else [1, 1, 1]
 
         surf = pg.surfarray.make_surface(frame * 255)
         surf = pg.transform.scale(surf, display)
@@ -36,21 +33,38 @@ def main():
         screen.blit(surf, (0, 0))
         pg.display.update()
 
-        pos_x, pos_y, rot = movement(pos_x, pos_y, rot, pg.key.get_pressed())
+        pos_x, pos_y, rot = movement(pos_x, pos_y, rot, pg.key.get_pressed(), clock.tick())
+
+@njit
+def new_frame(posx, posy, rot, frame, sky, floor, hres, halfvres, mod):
+    for i in range(hres):
+        rot_i = rot + np.deg2rad(i/mod - 30)
+        sin, cos, cos2 = np.sin(rot_i), np.cos(rot_i), np.cos(np.deg2rad(i/mod - 30))
+        frame[i][:] = sky[int(np.rad2deg(rot_i)%359)][:]
+        for j in range(halfvres):
+            n = (halfvres/(halfvres-j))/cos2
+            x, y = posx + cos*n, posy + sin*n
+            xx, yy = int(x*2%1*99), int(y*2%1*99)
+
+            shade = 0.2 + 0.8*(1-j/halfvres)
+
+            frame[i][halfvres*2-j-1] = shade*floor[xx][yy]
+
+    return frame
 
 
-def movement(pos_x, pos_y, rot, keys, c=1, d=1):
+def movement(pos_x, pos_y, rot, keys, et):
     if keys[pg.K_LEFT]:
-        rot = rot - (0.1 * c)
+        rot -= 0.001*et
 
     if keys[pg.K_RIGHT]:
-        rot = rot + (0.1 * c)
+        rot += 0.001*et
 
     if keys[pg.K_UP]:
-        pos_x, pos_y = pos_x + np.cos(rot)*0.1*d, pos_y + np.sin(rot)*0.1*d
+        pos_x, pos_y = pos_x + np.cos(rot)*0.002*et, pos_y + np.sin(rot)*0.002*et
 
     if keys[pg.K_DOWN]:
-        pos_x, pos_y = pos_x - np.cos(rot)*0.1*d, pos_y - np.sin(rot)*0.1*d  
+        pos_x, pos_y = pos_x - np.cos(rot)*0.002*et, pos_y - np.sin(rot)*0.002*et
 
     return pos_x, pos_y, rot
 
